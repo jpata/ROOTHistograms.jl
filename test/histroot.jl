@@ -1,5 +1,3 @@
-#include("../src/histroot.jl")
-
 using ROOT, Histograms, ROOTHistograms
 using Base.Test
 
@@ -30,27 +28,22 @@ nh2 = from_root(th)
 @test all(contents(nh) .== contents(nh2))
 @test all(entries(nh) .== entries(nh2))
 
+tf = ROOT.TFile("tfile.root", "RECREATE")
+h = Histogram([-Inf, linspace(-1, 1, 30)..., Inf])
 
-#tf = TFile("test/testhist.root")
-#
-#hd = load_hists_from_file("test/testhist.root")
-#
-#for k in keys(hd)
-#    th = root_cast(TH1, Get(tf, k))
-#    ents = entries(hd[k])
-#    conts = contents(hd[k])
-#    errs = errors(hd[k])
-#
-#    e1 = conts ./ sum(conts) .* GetEntries(th)
-#    e1[isnan(e1)] = 0
-#    e1[e1 .== Inf] = 1
-#
-#    e2 = conts.^2 ./ errs.^2
-#    e2[isnan(e2)] = 0
-#    e2[e2 .== Inf] = 1
-#
-#    for i=1:nbins(hd[k])
-#        @test conts[i] == GetBinContent(th, int32(i-1))
-#        @test_approx_eq_eps errs[i] GetBinError(th, int32(i-1)) 0.01
-#    end
-#end
+for i=1:1000000
+    hfill!(h, rand(-1:0.0001:1))
+end
+th = to_root(h, "hist3")
+h2 = from_root(th)
+Write(th)
+Close(tf)
+
+hd = load_hists_from_file("tfile.root")
+h = hd["hist3"]
+
+ROOT.gROOT.process_line("TFile* tf = new TFile(\"tfile.root\");")
+ROOT.gROOT.process_line("TH1D* h = (TH1D*)(tf->Get(\"hist3\"));")
+for i=1:nbins(h)
+    @test contents(h)[i] == ROOT.gROOT.process_line("h->GetBinContent($(i-1));")
+end
