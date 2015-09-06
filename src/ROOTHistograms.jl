@@ -27,7 +27,7 @@ end
 function to_root{T, E}(h::ErrorHistogram{T, 1, E}, name="hist")
 
     #remove underflow low and overflow high
-    _edges = edges(h)[1][2:end-1]
+    _edges = collect(edges(h)[1])[2:end-1]
     hi = TH1D(name, name, Int32(nbins(h)[1] - 2), pointer(_edges))
     for i=0:GetNbinsX(hi)+1
         SetBinContent(hi, Int32(i), contents(h)[i + 1])
@@ -191,11 +191,10 @@ function load_hists_from_file(fn, hfilter=(name->true))
     return ret
 end
 
-function write_hists_to_file(hd::Associative, fn)
+function write_hists_to_file(fn, hd::Associative)
     tf = TFile(convert(ASCIIString, fn), "RECREATE")
     Cd(tf, "")
     for (k, v) in hd
-        v::Union(Histogram, NHistogram)
         println("$k N=$(sum(entries(v)))")
         hi = to_root(v, string(k))
     end

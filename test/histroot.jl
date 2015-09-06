@@ -45,8 +45,12 @@ h2 = from_root(th)
 Write(th)
 Close(tf)
 
+
 hd = load_hists_from_file("tfile.root")
 h = hd["hist3"]
+
+write_hists_to_file("tfile2.root", Dict("hist3"=>h))
+hd2 = load_hists_from_file("tfile.root")
 
 ROOT.gROOT.process_line("TFile* tf = new TFile(\"tfile.root\");")
 ROOT.gROOT.process_line("TH1D* h = (TH1D*)(tf->Get(\"hist3\"));")
