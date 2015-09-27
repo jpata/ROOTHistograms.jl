@@ -49,7 +49,7 @@ Close(tf)
 hd = load_hists_from_file("tfile.root")
 h = hd["hist3"]
 
-write_hists_to_file("tfile2.root", Dict("hist3"=>h))
+write_hists_to_file("tfile2.root", Dict("/hist3"=>h); verbose=true)
 hd2 = load_hists_from_file("tfile.root")
 
 ROOT.gROOT.process_line("TFile* tf = new TFile(\"tfile.root\");")

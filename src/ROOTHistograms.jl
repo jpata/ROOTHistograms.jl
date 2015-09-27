@@ -54,7 +54,7 @@ function to_root{T, E}(h::ErrorHistogram{T, 1, E}, name="hist")
     return hi
 end
 
-function get_hist_bins(h::Union(TH1D, TH1A, TH1); error_type=:contents)
+function get_hist_bins(h::Union{TH1D, TH1A, TH1}; error_type=:contents)
     nb = Int64(GetNbinsX(h))
     nb>0 || error("nbins = $nb")
 
@@ -191,14 +191,61 @@ function load_hists_from_file(fn, hfilter=(name->true))
     return ret
 end
 
-function write_hists_to_file(fn, hd::Associative)
+# function recurse_write(tf, hd::Associative, pref="")
+#     if pref != ""
+#         println("making $pref")
+#         d = ROOT.mkdir(tf, pref)
+#         @show d
+#         if ROOT.root_pointer(d) == C_NULL
+#             d2 =  root_cast(TDirectory, Get(tf, pref))
+#             @show d2
+#         end
+#         d = root_cast(TDirectory, d)
+#         assert(d.p != C_NULL)
+#     else
+#         d = tf
+#     end
+#     Cd(tf, pref)
+#     for (k, v) in hd
+#         s = length(pref)>0 ? "$pref/$k" : string(k)
+#         recurse_write(d, v, s)
+#     end
+#     pref!= "" && Cd(tf, "..")
+# end
+
+# function recurse_write(tf::TDirectoryA, v::ErrorHistogram, pref="")
+#     th = to_root(v)
+#     @show tf
+#     SetDirectory(th, ROOT.root_pointer(tf))
+#     Write(th)
+# end
+
+function write_hists_to_file(fn, hd::Associative; verbose=false)
     tf = TFile(convert(ASCIIString, fn), "RECREATE")
     Cd(tf, "")
-    for (k, v) in hd
-        println("$k N=$(sum(entries(v)))")
-        hi = to_root(v, string(k))
+    for (objpath, obj) in hd
+        spl = rsearch(objpath, "/")
+        dirname = objpath[1:spl.start-1]
+        objname = objpath[spl.start+1:end]
+        if length(dirname) > 0
+            verbose && println("dir=$dirname obj=$objname")
+            d = Get(tf, dirname)
+            if d.p == C_NULL
+                verbose && println("making $dirname")
+                d = ROOT.mkdir(tf, dirname)
+            end
+            d = root_cast(TDirectory, Get(tf, dirname))
+            println(d) 
+            assert(d.p != C_NULL)
+        else
+            d = tf
+        end
+        verbose && println("TDirectory=$d")
+        robj = to_root(obj, objname)
+        SetDirectory(robj, convert(Ptr{TDirectory}, d.p))
     end
-    Write(tf)
+    nb = Write(tf)
+    verbose && println("Wrote $nb bytes")
     Close(tf)
 end
 
