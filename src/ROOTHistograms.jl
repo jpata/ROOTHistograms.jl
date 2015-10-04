@@ -55,6 +55,7 @@ function to_root{T, E}(h::ErrorHistogram{T, 1, E}, name="hist")
 end
 
 function get_hist_bins(h::Union{TH1D, TH1A, TH1}; error_type=:contents)
+    assert(h.p != C_NULL)
     nb = Int64(GetNbinsX(h))
     nb>0 || error("nbins = $nb")
 
@@ -119,6 +120,7 @@ function load_with_errors(f::TDirectoryA, k::ASCIIString; kwargs...)
 end
 
 function from_root(o::TH1A)
+    assert(o.p != C_NULL)
     conts, errs, ents, edgs = get_hist_bins(o)
     h = ErrorHistogram{Float64, 1, Tuple{Vector{Float64}}}(
         (edgs, ), conts, errs.^2, :left
@@ -130,6 +132,7 @@ function from_root(o::TH1A)
 end
 
 function from_root(o::TH2A)
+    assert(o.p != C_NULL)
     nx, ny = size(o)
     #println("nx=$nx ny=$ny")
     conts = zeros(nx+2, ny+2)
@@ -235,7 +238,6 @@ function write_hists_to_file(fn, hd::Associative; verbose=false)
                 d = ROOT.mkdir(tf, dirname)
             end
             d = root_cast(TDirectory, Get(tf, dirname))
-            println(d) 
             assert(d.p != C_NULL)
         else
             d = tf
@@ -248,6 +250,8 @@ function write_hists_to_file(fn, hd::Associative; verbose=false)
     verbose && println("Wrote $nb bytes")
     Close(tf)
 end
+
+include("pyplot.jl")
 
 export to_root, get_hist_bins, load_hists_from_file, from_root, write_hists_to_file
 export load_with_errors
